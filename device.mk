@@ -20,16 +20,6 @@
 # Everything in this directory will become public
 
 
-ifeq ($(TARGET_PREBUILT_KERNEL),)
-LOCAL_KERNEL := device/moto/shamu-kernel/zImage-dtb
-else
-LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
-endif
-
-
-PRODUCT_COPY_FILES := \
-    $(LOCAL_KERNEL):kernel
-
 PRODUCT_COPY_FILES += \
     device/moto/shamu/init.shamu.rc:root/init.shamu.rc \
     device/moto/shamu/init.shamu.power.rc:root/init.shamu.power.rc \
@@ -43,18 +33,23 @@ PRODUCT_COPY_FILES += \
     device/moto/shamu/apq8084-taiko-tfa9890_stereo_co_Button_Jack.kl:system/usr/keylayout/apq8084-taiko-tfa9890_stereo_co_Button_Jack.kl \
 	device/moto/shamu/atmel_mxt_ts.idc:system/usr/idc/atmel_mxt_ts.idc
 
+# Audio
 PRODUCT_COPY_FILES += \
-    device/moto/shamu/audio_policy.conf:system/etc/audio_policy.conf \
-    device/moto/shamu/audio_effects.conf:system/etc/audio_effects.conf
+    device/moto/shamu/audio/audio_effects.xml:system/vendor/etc/audio_effects.xml \
+    device/moto/shamu/audio/audio_platform_info.xml:system/etc/audio_platform_info.xml \
+    device/moto/shamu/audio/audio_policy_configuration.xml:system/etc/audio_policy_configuration.xml \
+    device/moto/shamu/audio/audio_policy_volumes_drc.xml:system/etc/audio_policy_volumes_drc.xml \
+    device/moto/shamu/audio/mixer_paths.xml:system/etc/mixer_paths.xml \
+    device/moto/shamu/audio/motvr_audio_policy_configuration.xml:system/etc/motvr_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/a2dp_audio_policy_configuration.xml:system/etc/a2dp_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:system/etc/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:system/etc/usb_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:system/etc/default_volume_tables.xml \
 
 PRODUCT_COPY_FILES += \
-    device/moto/shamu/media_profiles.xml:system/etc/media_profiles.xml \
+    device/moto/shamu/media_profiles_V1_0.xml:system/vendor/etc/media_profiles_V1_0.xml \
     device/moto/shamu/media_codecs.xml:system/etc/media_codecs.xml \
     device/moto/shamu/media_codecs_performance.xml:system/etc/media_codecs_performance.xml
-
-PRODUCT_COPY_FILES += \
-    device/moto/shamu/mixer_paths.xml:system/etc/mixer_paths.xml \
-    device/moto/shamu/audio_platform_info.xml:system/etc/audio_platform_info.xml
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
@@ -71,6 +66,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml \
     frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
     frameworks/native/data/etc/android.hardware.wifi.direct.xml:system/etc/permissions/android.hardware.wifi.direct.xml \
+    frameworks/native/data/etc/android.hardware.wifi.passpoint.xml:system/etc/permissions/android.hardware.wifi.passpoint.xml \
     frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
     frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
     frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:system/etc/permissions/android.hardware.sensor.gyroscope.xml \
@@ -107,10 +103,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/moto/shamu/bluetooth/BCM4356A2_001.003.015.0077.0214_ORC.hcd:$(TARGET_COPY_OUT_VENDOR)/firmware/bcm4354A2.hcd
 
-# Bluetooth HAL
-PRODUCT_PACKAGES += \
-    android.hardware.bluetooth@1.0-impl
-
 # For SPN display
 PRODUCT_COPY_FILES += \
     device/moto/shamu/spn-conf.xml:system/etc/spn-conf.xml
@@ -129,6 +121,7 @@ PRODUCT_PACKAGES := \
     libwpa_client \
     hostapd \
     wificond \
+    wifilogd \
     wpa_supplicant \
     wpa_supplicant.conf
 
@@ -138,6 +131,24 @@ PRODUCT_PACKAGES += atmel.fw.apq8084
 PRODUCT_PACKAGES += \
     qmi_motext_hook
 
+# Wifi HAL
+PRODUCT_PACKAGES += \
+    android.hardware.wifi@1.0-service
+
+# Dumpstate HAL
+PRODUCT_PACKAGES += \
+    android.hardware.dumpstate@1.0-service.shamu
+
+# Bluetooth HAL
+PRODUCT_PACKAGES += \
+    libbt-vendor \
+    android.hardware.bluetooth@1.0-impl
+
+# RIL
+PRODUCT_PACKAGES += \
+    librmnetctl \
+    libxml2
+
 # Live Wallpapers
 PRODUCT_PACKAGES += \
     LiveWallpapersPicker \
@@ -145,10 +156,23 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     gralloc.msm8084 \
+    android.hardware.graphics.allocator@2.0-impl \
+    android.hardware.graphics.allocator@2.0-service \
+    android.hardware.graphics.mapper@2.0-impl \
     hwcomposer.msm8084 \
+    android.hardware.graphics.composer@2.1-impl \
     memtrack.msm8084 \
+    android.hardware.memtrack@1.0-impl \
     libqdutils \
     libqdMetaData
+
+# RenderScript HAL
+PRODUCT_PACKAGES += \
+    android.hardware.renderscript@1.0-impl
+
+# Sensor HAL
+PRODUCT_PACKAGES += \
+    android.hardware.sensors@1.0-impl
 
 PRODUCT_PACKAGES += \
     libc2dcolorconvert \
@@ -159,6 +183,11 @@ PRODUCT_PACKAGES += \
     libOmxVdecHevc \
     libOmxVenc
 
+# Default OMX service to non-Treble
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.media.treble_omx=false
+
+USE_XML_AUDIO_POLICY_CONF := 1
 PRODUCT_PACKAGES += \
     audio.primary.msm8084 \
     audio.a2dp.default \
@@ -166,8 +195,38 @@ PRODUCT_PACKAGES += \
     audio.r_submix.default \
     libaudio-resampler
 
+PRODUCT_PACKAGES += \
+    android.hardware.audio@2.0-impl \
+    android.hardware.audio.effect@2.0-impl
+
 PRODUCT_PROPERTY_OVERRIDES += \
+    media.aac_51_output_enabled=true \
+    persist.audio.dualmic.config=endfire \
+    persist.audio.fluence.voicecall=true \
+    persist.audio.fluence.voicerec=false \
+    persist.audio.fluence.speaker=false \
     ro.audio.monitorRotation=true
+
+# Keymaster HAL
+PRODUCT_PACKAGES += \
+    android.hardware.keymaster@3.0-impl
+
+# DRM HAL
+PRODUCT_PACKAGES += \
+    android.hardware.drm@1.0-impl
+
+# drmservice props
+PRODUCT_PROPERTY_OVERRIDES += \
+    drm.service.enabled=true
+
+# facelock props
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.facelock.black_timeout=400 \
+    ro.facelock.det_timeout=1500 \
+    ro.facelock.rec_timeout=2500 \
+    ro.facelock.lively_timeout=2500 \
+    ro.facelock.est_max_time=600 \
+    ro.facelock.use_intro_anim=false
 
 # Audio effects
 PRODUCT_PACKAGES += \
@@ -175,8 +234,12 @@ PRODUCT_PACKAGES += \
     libqcomvoiceprocessing \
     libqcomvoiceprocessingdescriptors
 
+#CAMERA
 PRODUCT_PACKAGES += \
+    android.hardware.camera.device@3.2-impl \
+    android.hardware.camera.provider@2.4-impl \
     libqomx_core \
+    libmm-qcamera \
     libmmcamera_interface \
     libmmjpeg_interface \
     camera.msm8084 \
@@ -187,7 +250,8 @@ PRODUCT_PACKAGES += \
     libion
 
 PRODUCT_PACKAGES += \
-    lights.shamu
+    lights.shamu \
+    android.hardware.light@2.0-impl
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
@@ -222,7 +286,24 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.radio.apm_sim_not_pwdn=1 \
     persist.radio.no_wait_for_card=1 \
-    persist.radio.data_no_toggle=1
+    persist.radio.data_no_toggle=1 \
+    persist.radio.sib16_support=1 \
+    persist.data.qmi.adb_logmask=0 \
+    persist.radio.alt_mbn_name=tmo_alt.mbn \
+    ro.com.android.prov_mobiledata=false
+
+# never dexopt the MotoSignature
+$(call add-product-dex-preopt-module-config,MotoSignatureApp,disable)
+
+# WiFi calling
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.data.iwlan.enable=true \
+    persist.radio.ignore_ims_wlan=1 \
+    persist.radio.data_con_rprt=1
+
+# Rich Communications Service is disabled in 5.1
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.rcs.supported=0
 
 #Reduce IMS logging
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -235,7 +316,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     persist.camera.ISP.debug.mask=0 \
     persist.camera.pproc.debug.mask=7 \
     persist.camera.stats.debug.mask=0 \
-    persit.camera.imglib.logs=1 \
+    persist.camera.imglib.logs=1 \
     persist.camera.mct.debug.mask=1 \
     persist.camera.sensor.debug=0 \
     vidc.debug.level=1
@@ -277,30 +358,16 @@ PRODUCT_COPY_FILES += \
 
 # GPS
 PRODUCT_PACKAGES += \
-    libloc_adapter \
-    libloc_eng \
-    libloc_api_v02 \
-    libloc_ds_api \
-    libloc_core \
-    libizat_core \
-    libgeofence \
-    libgps.utils \
-    gps.msm8084 \
-    flp.msm8084 \
-    liblbs_core \
-    flp.conf
+    android.hardware.gnss@1.0-impl \
+    gps.msm8084
 
 # NFC packages
 PRODUCT_PACKAGES += \
     nfc_nci.bcm2079x.default \
     NfcNci \
     Tag \
-    android.hardware.nfc@1.0-impl
-
-ifeq ($(ENABLE_TREBLE), true)
-PRODUCT_PACKAGES += \
+    android.hardware.nfc@1.0-impl-bcm \
     android.hardware.nfc@1.0-service
-endif
 
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.nfc.xml:system/etc/permissions/android.hardware.nfc.xml \
@@ -347,17 +414,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
    dalvik.vm.heapgrowthlimit=256m
 
-# In userdebug, add minidebug info the the boot image and the system server to support
-# diagnosing native crashes.
-ifneq (,$(filter userdebug, $(TARGET_BUILD_VARIANT)))
-    # Boot image.
-    PRODUCT_DEX_PREOPT_BOOT_FLAGS += --generate-mini-debug-info
-    # System server and some of its services.
-    # Note: we cannot use PRODUCT_SYSTEM_SERVER_JARS, as it has not been expanded at this point.
-    $(call add-product-dex-preopt-module-config,services,--generate-mini-debug-info)
-    $(call add-product-dex-preopt-module-config,wifi-service,--generate-mini-debug-info)
-endif
-
 # setup dalvik vm configs.
 $(call inherit-product, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
 
@@ -368,17 +424,19 @@ $(call inherit-product-if-exists, vendor/qcom/gpu/msm8x84/msm8x84-gpu-vendor.mk)
 PRODUCT_SYSTEM_VERITY_PARTITION := /dev/block/platform/msm_sdcc.1/by-name/system
 $(call inherit-product, build/target/product/verity.mk)
 
-PRODUCT_PACKAGES += \
-    slideshow \
-    verity_warning_images
-
 # setup scheduler tunable
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     ro.qualcomm.perf.cores_online=2
 
+# Vibrator
+PRODUCT_PACKAGES += \
+    android.hardware.vibrator@1.0-impl
+
 PRODUCT_PACKAGES += \
     power.shamu \
-    thermal.shamu
+    android.hardware.power@1.0-impl \
+    thermal.shamu \
+    android.hardware.thermal@1.0-impl
 
 # For android_filesystem_config.h
 PRODUCT_PACKAGES += \
@@ -422,3 +480,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # OEM Unlock reporting
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     ro.oem_unlock_supported=1
+
+# Disable sdcardfs
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.sys.sdcardfs=false
+
+# ro.product.first_api_level indicates the first api level the device has commercially launched on.
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.product.first_api_level=21

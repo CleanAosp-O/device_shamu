@@ -25,9 +25,6 @@ on early-init
     chown system system /sys/kernel/debug/kgsl/proc
 
 on init
-    # Load persistent dm-verity state
-    verity_load_state
-
     mkdir /oem 0550 root root
 
     # Set permissions for persist partition
@@ -61,12 +58,6 @@ on fs
     setprop persist.data.wda.enable true
     setprop persist.data.df.agg.dl_pkt 10
     setprop persist.data.df.agg.dl_size 4096
-
-    # Adjust parameters for dm-verity device
-    write /sys/block/dm-0/queue/read_ahead_kb 2048
-
-    # Update dm-verity state and set partition.*.verified properties
-    verity_update_state
 
 on post-fs-data
     mkdir /tombstones/modem 0771 system system
@@ -140,13 +131,22 @@ on boot
     chown bluetooth bluetooth /sys/devices/platform/msm_serial_hs.0/clock
     chmod 0660 /sys/devices/platform/msm_serial_hs.0/clock
 
+    # add a cpuset for the camera daemon
+    mkdir /dev/cpuset/camera-daemon
+    write /dev/cpuset/camera-daemon/cpus 0
+    write /dev/cpuset/camera-daemon/mems 0
+    chown system system /dev/cpuset/camera-daemon
+    chown system system /dev/cpuset/camera-daemon/tasks
+    chmod 0664 /dev/cpuset/camera-daemon/tasks
+
     # update foreground cpuset now that processors are up
-    # reserve CPU 3 for the top app
+    # reserve CPU 3 for the top app and camera daemon
     write /dev/cpuset/foreground/cpus 0-2
     write /dev/cpuset/foreground/boost/cpus 0-3
     write /dev/cpuset/background/cpus 0
     write /dev/cpuset/system-background/cpus 0-1
     write /dev/cpuset/top-app/cpus 0-3
+    write /dev/cpuset/camera-daemon/cpus 0-3
 
     chmod 0660 /dev/ttyHS2
     chown bluetooth bluetooth /dev/ttyHS2
@@ -245,6 +245,20 @@ on boot
     chown media media /sys/devices/c55_ctrl/gpio_core/value
     chown media media /sys/devices/c55_ctrl/gpio_reset/value
 
+    # LED permissions
+    chown system system /sys/class/leds/red/brightness
+    chown system system /sys/class/leds/green/brightness
+    chown system system /sys/class/leds/blue/brightness
+    chmod 664 /sys/class/leds/red/brightness
+    chmod 664 /sys/class/leds/green/brightness
+    chmod 664 /sys/class/leds/blue/brightness
+    chmod 664 /sys/class/leds/red/blink
+    chmod 664 /sys/class/leds/green/blink
+    chmod 664 /sys/class/leds/blue/blink
+    chown system system /sys/class/leds/red/blink
+    chown system system /sys/class/leds/green/blink
+    chown system system /sys/class/leds/blue/blink
+
 # subsystem ramdump collection
 on property:persist.sys.qc.sub.rdump.on=*
     write /sys/module/subsystem_restart/parameters/enable_ramdumps ${persist.sys.qc.sub.rdump.on}
@@ -252,6 +266,9 @@ on property:persist.sys.qc.sub.rdump.on=*
 # permissions for CapSense firmware update
     chown radio radio /sys/devices/cycapsense_prog.1/cycapsense_fw
     chmod 0220 /sys/devices/cycapsense_prog.1/cycapsense_fw
+
+# Wifi firmware reload path
+    chown wifi wifi /sys/module/bcmdhd/parameters/firmware_path
 
 # msm specific files that need to be created on /data
 on post-fs-data
@@ -365,22 +382,26 @@ service qmuxd /system/bin/qmuxd
     class main
     user radio
     group radio audio bluetooth wakelock gps
+    writepid /dev/cpuset/system-background/tasks
 
 service netmgrd /system/bin/netmgrd
     class main
     group radio
+    writepid /dev/cpuset/system-background/tasks
 
 service imsqmidaemon /system/bin/imsqmidaemon
     class main
     user system
     socket ims_qmid stream 0660 system radio
     group radio log
+    writepid /dev/cpuset/system-background/tasks
 
 service imsdatadaemon /system/bin/imsdatadaemon
     class main
     user root
     socket ims_datad stream 0660 system radio
     group system wifi radio inet log readproc
+    writepid /dev/cpuset/system-background/tasks
     disabled
 
 on property:sys.ims.QMI_DAEMON_STATUS=1
@@ -411,7 +432,7 @@ on property:ro.use_data_netmgrd=false
 on property:ro.data.large_tcp_window_size=true
     write /proc/sys/net/ipv4/tcp_adv_win_scale  2
 
-service wpa_supplicant /system/bin/wpa_supplicant \
+service wpa_supplicant /system/vendor/bin/hw/wpa_supplicant \
     -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf \
     -I/system/etc/wifi/p2p_supplicant_overlay.conf  \
     -puse_p2p_group_interface=1p2p_device=1 \
@@ -435,8 +456,8 @@ service adspd /system/bin/adspd /dev/ttyHS3
 on property:sys.boot_completed=1
     start qcom-post-boot
 
-on property:ro.debuggable=1
-    start ss_ramdump
+#on property:ro.debuggable=1
+#    start ss_ramdump
 
 on property:ro.data.large_tcp_window_size=true
     # Adjust socket buffer to enlarge TCP receive window for high bandwidth (e.g. DO-RevB)
@@ -450,7 +471,8 @@ on charger
 service charger /charger
     class charger
     group log
-    seclabel u:r:healthd:s0
+    seclabel u:r:charger:s0
+    writepid /dev/cpuset/system-background/tasks
 
 # Allow usb charging to be disabled peristently
 on property:persist.usb.chgdisabled=1
@@ -463,6 +485,7 @@ service qseecomd /system/bin/qseecomd
    class core
    user root
    group root
+   writepid /dev/cpuset/system-background/tasks
 
 service mpdecision /system/bin/mpdecision --avg_comp
    class main
@@ -480,11 +503,13 @@ service thermal-engine /system/bin/thermal-engine
    class main
    user root
    group root
+   writepid /dev/cpuset/system-background/tasks
 
 service time_daemon /system/bin/time_daemon
    class late_start
    user root
    group root
+   writepid /dev/cpuset/system-background/tasks
 
 on property:init.svc.bootanim=stopped
     start usf-post-boot
@@ -493,6 +518,7 @@ service qcamerasvr /system/bin/mm-qcamera-daemon
     class late_start
     user camera
     group camera system inet input graphics
+    writepid /dev/cpuset/camera-daemon/tasks
 
 service bdAddrLoader /system/bin/bdAddrLoader -p ro.boot.btmacaddr -s -x
     class main
@@ -502,9 +528,6 @@ service bdAddrLoader /system/bin/bdAddrLoader -p ro.boot.btmacaddr -s -x
 
 on property:vold.decrypt=trigger_reset_main
     stop gnss-svcd
-
-on verity-logging
-    exec u:r:slideshow:s0 -- /sbin/slideshow warning/verity_red_1 warning/verity_red_2
 
 # When QCA1530 is known not to present
 on property:persist.qca1530=no
@@ -526,7 +549,6 @@ service bugreport /system/bin/dumpstate -d -p -B -z \
     class main
     disabled
     oneshot
-    keycodes 114 115 116
 
 service mdm_helper_proxy /system/bin/mdm_helper_proxy
     class core
@@ -553,3 +575,4 @@ service atfwd /system/bin/ATFWD-daemon
 service cnd /system/bin/cnd
     class late_start
     socket cnd stream 660 root inet
+    writepid /dev/cpuset/system-background/tasks

@@ -24,6 +24,13 @@ ENABLE_CPUSETS := true
 
 TARGET_NO_BOOTLOADER := true
 
+# Inline kernel building
+TARGET_KERNEL_CONFIG := shamu_defconfig
+TARGET_KERNEL_SOURCE := kernel/moto/shamu
+BOARD_KERNEL_IMAGE_NAME := zImage-dtb
+KERNEL_TOOLCHAIN_PREFIX := arm-eabi-
+KERNEL_TOOLCHAIN := $(ANDROID_BUILD_TOP)/prebuilts/gcc/$(HOST_OS)-x86/arm/arm-eabi-4.8/bin
+
 BOARD_KERNEL_BASE := 0x00000000
 BOARD_KERNEL_PAGESIZE :=  2048
 BOARD_KERNEL_TAGS_OFFSET := 0x01E00000
@@ -71,6 +78,7 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/moto/shamu/bluetooth_extra
 else
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/moto/shamu/bluetooth
 endif
+BOARD_CUSTOM_BT_CONFIG := device/moto/shamu/bluetooth/vnd_shamu.txt
 
 TARGET_NO_RADIOIMAGE := true
 TARGET_BOARD_PLATFORM := msm8084
@@ -81,6 +89,11 @@ TARGET_BOARD_INFO_FILE := device/moto/shamu/board-info.txt
 
 USE_OPENGL_RENDERER := true
 TARGET_USES_ION := true
+TARGET_USES_GRALLOC1_ADAPTER := true
+TARGET_USES_HWC2 := true
+VSYNC_EVENT_PHASE_OFFSET_NS := 2000000
+SF_VSYNC_EVENT_PHASE_OFFSET_NS := 6000000
+NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
 TARGET_HW_DISK_ENCRYPTION := false
 TARGET_CRYPTFS_HW_PATH := device/moto/shamu/cryptfs_hw
 
@@ -118,13 +131,12 @@ BOARD_HAS_AUDIO_DSP := true
 
 USE_DEVICE_SPECIFIC_CAMERA:= true
 
-BOARD_HAL_STATIC_LIBRARIES := libdumpstate.shamu
-
-USE_CLANG_PLATFORM_BUILD := true
-
 # Disable dex-preopt of prebuilts to save space.
 DONT_DEXPREOPT_PREBUILTS := true
 
 TARGET_FS_CONFIG_GEN += device/moto/shamu/config.fs
+
+DEVICE_MANIFEST_FILE := device/moto/shamu/manifest.xml
+DEVICE_MATRIX_FILE := device/moto/shamu/compatibility_matrix.xml
 
 -include vendor/moto/shamu/BoardConfigVendor.mk
